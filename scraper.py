@@ -2,49 +2,43 @@ import requests
 from bs4 import BeautifulSoup
 import json
 
-# praca domowa
-a = int(input("enter id: "))
+def get_item(ancestor, selector, attribute=None, return_list=False):
+    try:
+        if return_list:
+            return [item.get_text().strip() for item in ancestor.select(selector)]
+        if attribute:
+            return ancestor.select_one(selector)[attribute]
+        return ancestor.select_one(selector).get_text().strip()
+    except (AttributeError, TypeError):
+        return None
+
+selectors = {
+    "author": ["span.user-post__author-name"],
+    "recommendation": ["span.user-post__author-recommendation > em"],
+    "stars": ["span.user-post__score-count"],
+    "content": ["div.user-post__text"],
+    "useful": ["button.vote-yes > span"],
+    "useless": ["button.js_vote-no > span"],
+    "published": ["span.user-post__published > time:nth-child(1)", "datetime"],
+    "purchased": ["span.user-post__published > time:nth-child(2)", "datetime"],
+    "pros": ["div[class$=positives] ~ div.review-feature__item", None, True],
+    "cons": ["div[class$=negatives] ~ div.review-feature__item", None, True]
+}
+
+product_id = int(input("enter id: "))
     
-url = f'https://www.ceneo.pl/{a}#tab=reviews'
+url = f'https://www.ceneo.pl/{product_id}#tab=reviews'
 all_opinions = []
 while(url):
     response = requests.get(url)
     page = BeautifulSoup(response.text, "html.parser")
     opinions = page.select("div.js_product-review")
     for opinion in opinions:
-        opinion_id = opinion["data-entry-id"]
-        author = opinion.select_one("span.user-post__author-name").get_text().strip()
-        try:
-            recommendation = opinion.select_one("span.user-post__author-recomendation > em").get_text().strip()
-        except AttributeError:
-            recommendation = None
-        stars = opinion.select_one("span.user-post__score-count").get_text().strip()
-        content = opinion.select_one("div.user-post__text").get_text().strip()
-        useful = opinion.select_one("button.vote-yes > span").get_text().strip()
-        useless = opinion.select_one("button.js_vote-no > span").get_text().strip()
-        published = opinion.select_one("span.user-post__published > time:nth-child(1)")["datetime"]
-        try:
-            purchased = opinion.select_one("span.user-post__published > time:nth-child(2)")["datetime"]
-        except TypeError:
-            purchased = None
-        pros = opinion.select("div[class$=positives] ~ div.review-feature__item")
-        pros = [item.get_text().strip() for item in pros]
-        cons = opinion.select("div[class$=negatives] ~ div.review-feature__item")
-        cons = [item.get_text().strip() for item in cons]
-
         single_opinion = {
-            "opinion_id": opinion_id,
-            "author": author,
-            "recommendation": recommendation,
-            "stars": stars,
-            "content": content,
-            "useful": useful,
-            "useless": useless,
-            "published": published,
-            "purchased": purchased,
-            "pros": pros,
-            "cons": cons,
+            key:get_item(opinion, *value)
+                for key, value in selectors.items()
         }
+        single_opinion["opinion_id"] = opinion["data-entry-id"]
         all_opinions.append(single_opinion)
 
     try:
@@ -52,6 +46,5 @@ while(url):
     except TypeError:
         url = None
 
-
-with open(f"opinions/{a}.json", "w", encoding="UTF-8") as jf:
+with open(f"opinions/{product_id}.json", "w", encoding="UTF-8") as jf:
     json.dump(all_opinions, jf, indent=4, ensure_ascii=False)
