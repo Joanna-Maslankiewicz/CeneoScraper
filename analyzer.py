@@ -28,7 +28,7 @@ plt.close()
 
 stars = opinions["stars"].value_counts().sort_index().reindex(list(np.arange(0,5.5,0.5)), fill_value=0)
 stars.plot.bar(
-    colors = "pink"
+    color = "pink"
 )
 plt.title("Oceny produktu")
 plt.xlabel("Liczba gwiazdek")
