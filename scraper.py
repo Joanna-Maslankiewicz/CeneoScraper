@@ -5,8 +5,9 @@ import json
 def get_item(ancestor, selector, attribute=None, return_list=False):
     try:
         if return_list:
-            return [item.get_text().strip() for item in ancestor.select(selector)]
-        if attribute:
+            pros = ancestor.select(selector)
+            return [item.get_text().strip() for item in pros]
+        if (attribute):
             return ancestor.select_one(selector)[attribute]
         return ancestor.select_one(selector).get_text().strip()
     except (AttributeError, TypeError):
@@ -34,6 +35,7 @@ while(url):
     page = BeautifulSoup(response.text, "html.parser")
     opinions = page.select("div.js_product-review")
     for opinion in opinions:
+        opinion_id = opinion["data-entry-id"]
         single_opinion = {
             key:get_item(opinion, *value)
                 for key, value in selectors.items()
